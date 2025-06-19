@@ -14,14 +14,27 @@ poetry install
 ### Edycja plików MHTML
 
 ```bash
-# Otwórz edytor dla konkretnego pliku
-qra edit filename.mhtml
+# Otwórz edytor dla konkretnego pliku (automatycznie utworzy jeśli nie istnieje)
+qra edit portfolio.mhtml
+
+# Wybierz template przy tworzeniu nowego pliku
+qra edit myblog.mhtml --template blog
+qra edit docs.mhtml --template docs
+qra edit landing.mhtml --template landing
 
 # Otwórz edytor bez pliku (wybierz z interfejsu)
 qra edit
 ```
 
+**Dostępne templates:**
+- `basic` - podstawowy dokument (domyślny)
+- `portfolio` - strona portfolio z nawigacją i projektami
+- `blog` - szablon bloga z artykułami i sidebar
+- `docs` - dokumentacja z nawigacją boczną
+- `landing` - landing page z sekcjami hero, features, pricing
+
 Edytor:
+- **Auto-tworzenie**: Automatycznie tworzy plik jeśli nie istnieje
 - Rozpakuje plik MHTML do folderu `.qra/`
 - Otworzy przeglądarkę z interfejsem edycji
 - Auto-save co 5 sekund
