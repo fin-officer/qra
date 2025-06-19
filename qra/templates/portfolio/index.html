@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio - {{ name | default('Twoje Imię') }}</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav>
+        <div class="nav-container">
+            <h1 class="logo">Portfolio</h1>
+            <ul class="nav-menu">
+                <li><a href="#about">O mnie</a></li>
+                <li><a href="#projects">Projekty</a></li>
+                <li><a href="#contact">Kontakt</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Cześć, jestem <span class="highlight">Developerem</span></h1>
+            <p>Tworzę nowoczesne aplikacje i rozwiązania web</p>
+            <a href="#projects" class="cta-btn">Zobacz moje projekty</a>
+        </div>
+    </section>
+
+    <section id="about" class="about">
+        <div class="container">
+            <h2>O mnie</h2>
+            <p>Jestem pasjonatem technologii z doświadczeniem w tworzeniu aplikacji web. Specjalizuję się w nowoczesnych frameworkach i bibliotekach.</p>
+        </div>
+    </section>
+
+    <section id="projects" class="projects">
+        <div class="container">
+            <h2>Moje Projekty</h2>
+            <div class="project-grid">
+                <div class="project-card">
+                    <h3>Projekt 1</h3>
+                    <p>Opis pierwszego projektu...</p>
+                    <div class="tech-stack">React, Node.js, MongoDB</div>
+                </div>
+                <div class="project-card">
+                    <h3>Projekt 2</h3>
+                    <p>Opis drugiego projektu...</p>
+                    <div class="tech-stack">Vue.js, Python, PostgreSQL</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="contact" class="contact">
+        <div class="container">
+            <h2>Kontakt</h2>
+            <p>email@example.com | +48 123 456 789</p>
+        </div>
+    </section>
+
+    <script src="script.js"></script>
+</body>
+</html>

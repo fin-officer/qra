@@ -14,6 +14,14 @@ watchdog = "^3.0.0"
 markdown = "^3.5.0"
 beautifulsoup4 = "^4.12.0"
 pygments = "^2.16.0"
+jinja2 = "^3.1.0"
+
+flask = "^2.3.0"
+click = "^8.1.0"
+watchdog = "^3.0.0"
+markdown = "^3.5.0"
+beautifulsoup4 = "^4.12.0"
+pygments = "^2.16.0"
 email-validator = "^2.0.0"
 
 [tool.poetry.group.dev.dependencies]
@@ -56,3 +64,7 @@ ensure_newline_before_comments = true
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "-v --cov=qra --cov-report=term-missing --cov-report=html"
+
+
+[tool.poetry.include]
+include = ["qra/templates/**/*"]

@@ -1,226 +1,512 @@
 # QRA - MHTML Editor and Processor
 
-QRA to zaawansowany edytor plików MHTML z podglądem na żywo, automatycznym zapisywaniem i możliwością konwersji między formatami.
+QRA to zaawansowany edytor plików MHTML z podglądem na żywo, automatycznym zapisywaniem i możliwością konwersji między formatami. Używa systemu templates opartego na Jinja2 i rozpakuje MHTML do edytowalnych komponentów.
+
+```
+    ┌─────────────────────────────────────────────────────────────┐
+    │                        QRA WORKFLOW                         │
+    └─────────────────────────────────────────────────────────────┘
+                                   
+    portfolio.mhtml  ──┐                   ┌── Edytor Web
+                       │                   │   ┌─────────────┐
+    invoice.mhtml   ───┼── qra edit ───────┼───│ index.html  │
+                       │                   │   │ styles.css  │ 
+    docs.mhtml      ───┘                   │   │ script.js   │
+                                           │   └─────────────┘
+                                           │         │
+                                           └── .qra/ folder
+                                                     │
+                                              Auto-save co 5s
+                                                     │
+                                                     ▼
+                                           Pakowanie z powrotem
+                                               do .mhtml
+```
+
+## Zasada działania
+
+QRA działa w cyklu **Rozpakuj → Edytuj → Spakuj**:
+
+```mermaid
+graph TD
+    A[plik.mhtml] --> B[qra edit plik.mhtml]
+    B --> C[Rozpakowanie do .qra/]
+    C --> D[index.html]
+    C --> E[styles.css] 
+    C --> F[script.js]
+    C --> G[metadata.json]
+    
+    D --> H[Edytor Web]
+    E --> H
+    F --> H
+    
+    H --> I[Edycja w przeglądarce]
+    I --> J[Auto-save co 5s]
+    J --> K[Pakowanie do .mhtml]
+    K --> A
+    
+    style A fill:#e1f5fe
+    style H fill:#f3e5f5
+    style K fill:#e8f5e8
+```
 
 ## Instalacja
 
 ```bash
-# Sklonuj repozytorium lub utwórz nowy projekt
+# Zainstaluj QRA
 poetry install
+
+# Lub z pip (po publikacji)
+pip install qra
+
+# Sprawdź instalację
+qra --help
+```
+
+## Szybki start
+
+```bash
+# 1. Utwórz i edytuj nowy plik
+qra edit moja-strona.mhtml
+
+# 2. Wybierz template przy tworzeniu
+qra edit portfolio.mhtml --template portfolio
+
+# 3. Konwertuj Markdown do MHTML
+qra html README.md
+
+# 4. Wyszukaj pliki
+qra search "invoice"+"2024" -L 2 -v
 ```
 
 ## Komendy
 
-### Edycja plików MHTML
+### 🎨 Edycja plików MHTML
 
 ```bash
-# Otwórz edytor dla konkretnego pliku (automatycznie utworzy jeśli nie istnieje)
-qra edit portfolio.mhtml
+# Otwórz edytor (automatycznie tworzy plik jeśli nie istnieje)
+qra edit filename.mhtml
 
-# Wybierz template przy tworzeniu nowego pliku
-qra edit myblog.mhtml --template blog
+# Wybierz template przy tworzeniu
+qra edit portfolio.mhtml --template portfolio
+qra edit blog.mhtml --template blog
 qra edit docs.mhtml --template docs
 qra edit landing.mhtml --template landing
 
-# Otwórz edytor bez pliku (wybierz z interfejsu)
-qra edit
+# Dostosuj serwer
+qra edit file.mhtml --port 8080 --host 0.0.0.0
 ```
 
 **Dostępne templates:**
-- `basic` - podstawowy dokument (domyślny)
-- `portfolio` - strona portfolio z nawigacją i projektami
-- `blog` - szablon bloga z artykułami i sidebar
-- `docs` - dokumentacja z nawigacją boczną
-- `landing` - landing page z sekcjami hero, features, pricing
-
-Edytor:
-- **Auto-tworzenie**: Automatycznie tworzy plik jeśli nie istnieje
-- Rozpakuje plik MHTML do folderu `.qra/`
-- Otworzy przeglądarkę z interfejsem edycji
-- Auto-save co 5 sekund
-- Podgląd na żywo
-- Kolorowanie składni dla HTML, CSS, JS
-- Wszystkie pliki w jednym interfejsie
-
-### Tworzenie nowych plików
-
-```bash
-# Utwórz nowy plik MHTML
-qra create invoice.mhtml
-qra mhtml create invoice.mhtml  # alternatywnie
+```
+basic     → Prosty dokument z sekcjami
+portfolio → Strona portfolio z projektami  
+blog      → Blog z artykułami i sidebar
+docs      → Dokumentacja z nawigacją boczną
+landing   → Landing page z cenami i CTA
 ```
 
-### Konwersja formatów
-
-```bash
-# Markdown → MHTML
-qra html readme.md              # Utworzy readme.mhtml
-qra html readme.md output.mhtml # Własna nazwa
-
-# MHTML → Markdown  
-qra md index.mhtml              # Utworzy index.md
-qra md index.mhtml output.md    # Własna nazwa
-```
-
-### Wyszukiwanie
-
-```bash
-# Wyszukaj pliki zawierające wszystkie słowa kluczowe
-qra search "invoice"+"paypal"
-qra search "dokumenty"+"2024"+"faktura"
-
-# Wyszukaj w konkretnym folderze
-qra search "test" --path ./documents/
-```
-
-## Struktura projektu
+### 📁 Struktura po uruchomieniu
 
 ```
 projekt/
-├── filename.mhtml          # Oryginalny plik MHTML
-├── .qra/                   # Rozpakowane komponenty (auto-generowane)
-│   ├── index.html          # HTML główny
-│   ├── style.css           # Style
-│   ├── script.js           # JavaScript
-│   ├── image1.jpg          # Obrazy i zasoby
-│   └── metadata.json       # Metadane komponentów
-├── pyproject.toml
+├── portfolio.mhtml          # Oryginalny plik
+├── .qra/                    # Auto-generowane
+│   ├── index.html          # ← Edytuj HTML
+│   ├── styles.css          # ← Edytuj style
+│   ├── script.js           # ← Edytuj JavaScript
+│   ├── image.jpg           # ← Obrazy i zasoby
+│   └── metadata.json       # ← Metadane MIME
 └── README.md
 ```
 
-## Funkcje edytora
+### 🔄 Konwersje formatów
 
-### Interface
-- **Lista plików**: Wszystkie komponenty z folderu `.qra/`
-- **Edytor kodu**: Kolorowanie składni dla HTML, CSS, JS, JSON, XML
-- **Podgląd na żywo**: Automatycznie odświeżany iframe
-- **Status zapisu**: Wskaźnik stanu (zapisane/zmodyfikowane/błąd)
-
-### Auto-save
-- **Lokalne auto-save**: 2 sekundy po ostatniej zmianie
-- **Globalne auto-save**: Co 5 sekund do pliku MHTML
-- **Ręczny zapis**: Ctrl+S lub przycisk "Zapisz wszystko"
-
-### Skróty klawiszowe
-- `Ctrl+S` - Zapisz bieżący plik
-- `Ctrl+N` - Dodaj nowy plik
-- `Ctrl+Shift+S` - Zapisz wszystko do MHTML
-
-## Przykłady użycia
-
-### Edycja istniejącego pliku
 ```bash
-qra edit newsletter.mhtml
-# Otworzy edytor w przeglądarce
-# Edytuj pliki w interfejsie
-# Auto-save działa automatycznie
+# Markdown → MHTML (z profesjonalnym CSS)
+qra html documentation.md                # → documentation.mhtml
+qra html README.md portfolio.mhtml       # Własna nazwa
+
+# MHTML → Markdown (podstawowa konwersja)
+qra md portfolio.mhtml                   # → portfolio.md
+qra md index.mhtml docs.md              # Własna nazwa
 ```
 
-### Tworzenie od zera
+### 🔍 Wyszukiwanie zaawansowane
+
 ```bash
-qra create portfolio.mhtml
-qra edit portfolio.mhtml
-# Dodaj nowe pliki przez interface
-# Przykład: dodaj "styles.css", "app.js"
+# Podstawowe wyszukiwanie
+qra search "invoice"+"paypal"
+
+# Kontrola głębokości (-L, --level)
+qra search "config" -L 0                # Tylko bieżący katalog
+qra search "docs" -L 5                  # 5 poziomów w głąb
+
+# Rozszerzenie zasięgu (-S, --scope)  
+qra search "backup" -S 2                # 2 poziomy wyżej
+qra search "logs" -S 1 -L 3             # 1 wyżej, 3 w głąb
+
+# Verbose mode
+qra search "api"+"endpoint" -v          # Szczegółowe informacje
+
+# Własna ścieżka
+qra search "config" --path /etc -L 1
 ```
 
-### Konwersja dokumentacji
-```bash
-qra html documentation.md
-qra edit documentation.mhtml
-# Edytuj wynikowy MHTML
-# Dodaj style, skrypty, obrazy
+#### Przykład wyszukiwania z poziomami:
+
+```
+/home/user/projects/           ← scope 1 
+├── myapp/                     ← Twoja pozycja (scope 0)
+│   ├── src/                   ← level 1
+│   │   └── components/        ← level 2
+│   ├── docs/                  ← level 1  
+│   └── config.mhtml          ← level 1
+└── backup/                    ← scope 1
+    └── old/                   ← scope 1 + level 1
+        └── archive.mhtml      ← scope 1 + level 2
 ```
 
-### Wyszukiwanie projektów
+### 🆕 Tworzenie plików
+
 ```bash
-qra search "react"+"component"
-# Znajdzie wszystkie pliki MHTML zawierające oba terminy
-# Pokaże kontekst znalezionych dopasowań
+# Utwórz pusty plik MHTML
+qra create invoice.mhtml
+qra mhtml create project.mhtml  # Alternatywnie
 ```
 
-## Struktura MHTML
+## Interface edytora
 
-QRA automatycznie zarządza strukturą MHTML:
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         QRA Editor                              │
+├─────────────────┬───────────────────────────┬───────────────────┤
+│   📁 Pliki      │      🖋️  Edytor          │    👁️ Podgląd    │
+│                 │                           │                   │
+│ • index.html    │  <!DOCTYPE html>          │   ┌─────────────┐ │
+│ • styles.css    │  <html>                   │   │             │ │
+│ • script.js     │    <head>                 │   │   Live      │ │
+│                 │      <title>...</title>   │   │  Preview    │ │
+│ ✅ Auto-save    │    </head>                │   │             │ │
+│ 🔄 5s timer     │    <body>                 │   │ ◄────────── │ │
+│                 │      <h1>Hello</h1>       │   │             │ │
+│ [Nowy plik]     │    </body>                │   └─────────────┘ │
+│ [Zapisz all]    │  </html>                  │                   │
+└─────────────────┴───────────────────────────┴───────────────────┘
+```
 
-1. **Rozpakowanie**: `filename.mhtml` → `.qra/*.*`
-2. **Edycja**: Modyfikuj pliki w folderze `.qra/`
-3. **Pakowanie**: `.qra/*.*` → `filename.mhtml` (auto-save)
+### Funkcje edytora:
+- **Lista plików**: Wszystkie komponenty z `.qra/`
+- **Kolorowanie składni**: HTML, CSS, JS, JSON, XML
+- **Podgląd na żywo**: Automatyczne odświeżanie iframe
+- **Auto-save**: 
+  - Lokalne: 2s po ostatniej zmianie
+  - Globalne: Co 5s do pliku MHTML
+- **Skróty klawiszowe**: 
+  - `Ctrl+S` - Zapisz bieżący plik
+  - `Ctrl+N` - Dodaj nowy plik
 
-### Metadane
-Plik `.qra/metadata.json` przechowuje:
-```json
-{
-  ".qra/index.html": {
-    "content_type": "text/html",
-    "content_location": "index.html",
-    "encoding": "utf-8",
-    "original_name": "index.html"
-  }
-}
+## Workflow przykłady
+
+### 📊 Tworzenie portfolio
+
+```bash
+# 1. Utwórz portfolio
+qra edit portfolio.mhtml --template portfolio
+
+# 2. Edytuj w przeglądarce
+#    - Zmień dane osobowe w HTML
+#    - Dostosuj kolory w CSS  
+#    - Dodaj projekty w HTML
+#    - Dodaj animacje w JS
+
+# 3. Dodaj nowe pliki
+#    - projects.json (dane projektów)
+#    - gallery.css (style galerii)
+
+# 4. Auto-save zapisuje wszystko co 5s
+```
+
+### 📝 Blog z artykułami
+
+```bash
+# 1. Utwórz blog
+qra edit blog.mhtml --template blog
+
+# 2. Napisz artykuł w Markdown
+echo "# Nowy artykuł\nTreść..." > article.md
+
+# 3. Konwertuj do MHTML
+qra html article.md article.mhtml
+
+# 4. Skopiuj treść do głównego bloga
+qra edit blog.mhtml
+# Wklej treść z article.mhtml
+```
+
+### 📚 Dokumentacja projektu
+
+```bash
+# 1. Konwertuj README
+qra html README.md docs.mhtml
+
+# 2. Przełącz na template docs
+qra edit docs.mhtml --template docs
+
+# 3. Dodaj strukturę nawigacji
+#    - API reference
+#    - Przykłady użycia
+#    - FAQ
+
+# 4. Dodaj style dla kodu
+#    - Syntax highlighting
+#    - Copy buttons
+```
+
+### 🔍 Zarządzanie projektami
+
+```bash
+# Znajdź wszystkie faktury z 2024
+qra search "invoice"+"2024" -L 2 -v
+
+# Znajdź konfiguracje w całym systemie 
+qra search "config"+"database" -S 3 -L 1
+
+# Szukaj API dokumentacji w projektach
+cd ~/projects
+qra search "api"+"endpoint" -L 3 --verbose
+```
+
+## Architektura rozwiązania
+
+```mermaid
+graph TB
+    subgraph "CLI Interface"
+        CLI[qra command]
+        ARGS[arguments & flags]
+    end
+    
+    subgraph "Core Logic"
+        PROC[MHTMLProcessor]
+        TMPL[TemplateManager]
+        SEARCH[SearchEngine]
+    end
+    
+    subgraph "Templates System"
+        J2[Jinja2 Engine]
+        T_BASIC[basic/]
+        T_PORT[portfolio/]
+        T_BLOG[blog/]
+        T_DOCS[docs/]
+        T_LAND[landing/]
+    end
+    
+    subgraph "Web Interface"
+        FLASK[Flask Server]
+        EDITOR[Web Editor]
+        PREVIEW[Live Preview]
+        AUTOSAVE[Auto-save]
+    end
+    
+    subgraph "File System"
+        MHTML[.mhtml files]
+        QRA[.qra/ folder]
+        META[metadata.json]
+    end
+    
+    CLI --> PROC
+    ARGS --> TMPL
+    ARGS --> SEARCH
+    
+    PROC --> TMPL
+    TMPL --> J2
+    J2 --> T_BASIC
+    J2 --> T_PORT
+    J2 --> T_BLOG
+    J2 --> T_DOCS
+    J2 --> T_LAND
+    
+    PROC --> FLASK
+    FLASK --> EDITOR
+    EDITOR --> PREVIEW
+    EDITOR --> AUTOSAVE
+    
+    PROC <--> MHTML
+    PROC <--> QRA
+    QRA --> META
+    
+    AUTOSAVE --> MHTML
+    
+    style CLI fill:#e3f2fd
+    style PROC fill:#f3e5f5  
+    style FLASK fill:#e8f5e8
+    style MHTML fill:#fff3e0
+```
+
+## System templates
+
+QRA używa Jinja2 do dynamicznych templates:
+
+### Struktura template:
+
+```
+qra/templates/portfolio/
+├── index.html          # Jinja2 template z {{ variables }}
+├── styles.css          # CSS style
+├── script.js           # JavaScript functionality
+└── config.json         # Opcjonalna konfiguracja
+```
+
+### Przykład Jinja2 template:
+
+```html
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <title>{{ title | default('Portfolio') }}</title>
+    <meta name="author" content="{{ author | default('Jan Kowalski') }}">
+</head>
+<body>
+    <h1>Witaj, jestem {{ name | default('Developerem') }}</h1>
+    {% if projects %}
+        {% for project in projects %}
+            <div class="project">{{ project.name }}</div>
+        {% endfor %}
+    {% endif %}
+</body>
+</html>
 ```
 
 ## Zaawansowane funkcje
 
-### Markdown z CSS
-```bash
-qra html article.md
-# Automatycznie dodaje profesjonalne style CSS
-# Wspiera code highlighting, tabele, blockquotes
+### Auto-save mechanizm
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant E as Editor
+    participant F as File System
+    participant M as MHTML
+    
+    U->>E: Edytuje plik
+    E->>E: Timer 2s (lokalny)
+    E->>F: Zapisz do .qra/
+    
+    loop Co 5 sekund
+        E->>F: Sprawdź zmiany
+        F->>M: Pakuj do .mhtml
+        M->>U: Auto-saved ✓
+    end
 ```
 
 ### Wyszukiwanie z kontekstem
-```bash
-qra search "API"+"authentication"
-# Wyświetla fragmenty tekstu z dopasowaniami
-# Pokazuje kontekst ±50 znaków wokół słów kluczowych
-```
 
-### Dodawanie plików przez edytor
-- Kliknij "Nowy plik" w edytorze
-- Wpisz nazwę (rozszerzenie opcjonalne)
-- Automatycznie wybierze template na podstawie rozszerzenia
+```bash
+$ qra search "api"+"authentication" -v
+
+Wyszukiwanie słów kluczowych: api, authentication
+Ścieżka wyszukiwania: /home/user/projects  
+Głębokość: 3 poziomów
+--------------------------------------------------
+Znaleziono 12 plików MHTML do przeszukania
+✓ Dopasowania w: docs/api.mhtml (głębokość: 1)
+✓ Dopasowania w: backend/auth.mhtml (głębokość: 2)
+
+📄 docs/api.mhtml
+   Pełna ścieżka: /home/user/projects/docs/api.mhtml
+   Głębokość: 1, Rozmiar: 45.2 KB, Dopasowań: 8
+    1. The API requires authentication via JWT tokens
+    2. POST /auth/login endpoint handles user authentication  
+    3. All API endpoints except /health require authentication
+    4. Authentication failures return 401 status codes
+    5. API keys provide alternative authentication method
+```
 
 ## Rozwiązywanie problemów
 
-### Plik nie otwiera się
+### Częste problemy:
+
+#### 1. Plik nie otwiera się
 ```bash
 # Sprawdź czy plik istnieje
 ls -la *.mhtml
 
-# Utwórz nowy jeśli nie istnieje
-qra create filename.mhtml
+# QRA automatycznie utworzy plik
+qra edit newfile.mhtml --template basic
 ```
 
-### Błędy auto-save
-- Sprawdź uprawnienia do zapisu
-- Upewnij się że folder `.qra/` nie jest chroniony
-- Uruchom ponownie `qra edit`
+#### 2. Błędy auto-save
+```bash
+# Sprawdź uprawnienia
+ls -la .qra/
 
-### Problemy z podglądem
-- Sprawdź czy istnieje plik `.qra/*.html`
-- Odśwież przeglądarkę (F5)
-- Sprawdź konsolę deweloperską w przeglądarce
-
-## Rozwój
-
-### Dodawanie nowych typów plików
-Edytuj `qra/core.py`, funkcję `get_qra_files()`:
-```python
-file_type = {
-    '.html': 'html',
-    '.css': 'css', 
-    '.js': 'javascript',
-    '.json': 'json',
-    '.xml': 'xml',
-    '.py': 'python',  # Dodaj nowy typ
-    # ...
-}.get(ext, 'text')
+# Uruchom ponownie z verbose
+qra edit file.mhtml --verbose
 ```
 
-### Rozszerzanie wyszukiwania
-Modyfikuj `search_files()` w `qra/core.py` dla dodatkowych formatów czy operatorów wyszukiwania.
+#### 3. Problemy z podglądem
+```bash
+# Sprawdź czy istnieje HTML
+ls .qra/*.html
+
+# Otwórz w nowym porcie
+qra edit file.mhtml --port 8080
+```
+
+#### 4. Templates nie działają
+```bash
+# Sprawdź dostępne templates
+python -c "from qra.templates import TemplateManager; print(TemplateManager().list_available_templates())"
+
+# Użyj basic jako fallback
+qra edit file.mhtml --template basic
+```
+
+### Diagnostyka:
+
+```bash
+# Sprawdź struktur QRA
+find qra/ -name "*.py" -o -name "*.html" -o -name "*.css"
+
+# Test wyszukiwania
+qra search "test" -v --path . -L 1
+
+# Sprawdź czy wszystko działa
+qra edit test.mhtml --template basic
+```
+
+## Współtworzenie
+
+### Dodawanie nowych templates:
+
+1. **Utwórz katalog**: `qra/templates/mytemplate/`
+2. **Dodaj pliki**:
+   - `index.html` (z Jinja2)
+   - `styles.css` 
+   - `script.js`
+3. **Test**: `qra edit test.mhtml --template mytemplate`
+
+### Rozszerzanie funkcjonalności:
+
+```bash
+# Sklonuj repozytorium
+git clone <repo-url>
+cd qra
+
+# Zainstaluj w trybie dev
+poetry install --with dev
+
+# Uruchom testy
+pytest tests/
+
+# Dodaj nowe funkcje
+# Wyślij Pull Request
+```
 
 ## Licencja
 
-Apache Software License 2.0
+Apache Software License - używaj dowolnie w projektach osobistych i komercyjnych.
+
+---
+
+**QRA** - *Quick Resource Archiver* 🚀
