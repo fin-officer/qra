@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "qra"
-version = "0.1.1"
+version = "0.1.2"
 description = "MHTML editor and processor with live preview"
 authors = ["Tom Sapletta <info@softreck.dev>"]
 readme = "README.md"
@@ -8,8 +8,6 @@ packages = [{include = "qra"}]
 
 [tool.poetry.dependencies]
 python = ">=3.8.1,<4.0"
-
-[tool.poetry.group.dev.dependencies]
 flask = "^2.3.0"
 click = "^8.1.0"
 watchdog = "^3.0.0"

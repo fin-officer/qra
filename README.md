@@ -208,36 +208,6 @@ file_type = {
 ### Rozszerzanie wyszukiwania
 Modyfikuj `search_files()` w `qra/core.py` dla dodatkowych formatów czy operatorów wyszukiwania.
 
-## Testowanie
-
-Projekt zawiera kompleksowe testy jednostkowe i integracyjne. Aby uruchomić testy:
-
-```bash
-# Zainstaluj zależności developerskie
-poetry install --with dev
-
-# Uruchom testy
-make test
-
-# Uruchom testy z pokryciem kodu
-make test-cov
-
-# Sprawdź jakość kodu
-make lint
-
-# Sformatuj kod
-make format
-```
-
-### Struktura testów
-
-- `tests/unit/` - Testy jednostkowe poszczególnych komponentów
-  - `test_core.py` - Testy głównej logiki MHTMLProcessor
-  - `test_server.py` - Testy serwera Flask
-- `tests/integration/` - Testy integracyjne
-  - `test_cli.py` - Testy interfejsu wiersza poleceń
-- `tests/fixtures/` - Pliki testowe używane w testach
-
 ## Licencja
 
 Apache Software License 2.0
