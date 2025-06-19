@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "qra"
+version = "0.1.1"
+description = "MHTML editor and processor with live preview"
+authors = ["Tom Sapletta <info@softreck.dev>"]
+readme = "README.md"
+packages = [{include = "qra"}]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+flask = "^2.3.0"
+click = "^8.1.0"
+watchdog = "^3.0.0"
+markdown = "^3.5.0"
+beautifulsoup4 = "^4.12.0"
+pygments = "^2.16.0"
+
+[tool.poetry.scripts]
+qra = "qra.cli:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
