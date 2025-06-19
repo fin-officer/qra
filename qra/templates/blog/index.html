@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title | default('Mój Blog') }}</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <h1 class="site-title">{{ blog_title | default('Mój Blog') }}</h1>
+            <p class="site-description">{{ description | default('Moje przemyślenia o technologii i życiu') }}</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <article class="post">
+            <header class="post-header">
+                <h1 class="post-title">Witaj na moim blogu!</h1>
+                <div class="post-meta">
+                    <time datetime="2024-01-01">1 stycznia 2024</time>
+                    <span class="author">Autor</span>
+                </div>
+            </header>
+
+            <div class="post-content">
+                <p>To jest pierwszy wpis na moim nowym blogu utworzonym w QRA. Możesz edytować ten tekst i dodawać nowe wpisy.</p>
+
+                <h2>O czym będę pisał?</h2>
+                <ul>
+                    <li>Programowanie i technologie</li>
+                    <li>Najlepsze praktyki w development</li>
+                    <li>Recenzje narzędzi i frameworków</li>
+                    <li>Osobiste przemyślenia</li>
+                </ul>
+
+                <blockquote>
+                    "Najlepszy sposób na naukę to dzielenie się wiedzą z innymi."
+                </blockquote>
+            </div>
+        </article>
+
+        <aside class="sidebar">
+            <section class="widget">
+                <h3>O mnie</h3>
+                <p>Jestem programistą z pasją do tworzenia i dzielenia się wiedzą.</p>
+            </section>
+
+            <section class="widget">
+                <h3>Ostatnie wpisy</h3>
+                <ul class="recent-posts">
+                    <li><a href="#">Witaj na moim blogu!</a></li>
+                    <li><a href="#">Dodaj tutaj kolejne wpisy...</a></li>
+                </ul>
+            </section>
+        </aside>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>

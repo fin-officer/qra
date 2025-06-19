@@ -503,6 +503,155 @@ pytest tests/
 # Wyślij Pull Request
 ```
 
+
+
+
+
+# QRA - Obsługa plików EML
+
+QRA teraz obsługuje **pliki EML** (email) oprócz MHTML! 
+
+## 🎯 Dodane funkcje:
+
+### 1. **Obsługa plików .eml**
+```bash
+# Edytuj email
+qra edit invoice.eml --template basic
+
+# Wyszukaj w emailach
+qra search "payment"+"invoice" -L 2 -v
+
+# Automatycznie rozpoznaje typ pliku
+qra edit message.eml    # ← Wykryje jako EML
+qra edit webpage.mhtml  # ← Wykryje jako MHTML
+```
+
+### 2. **CodeMirror z kolorowaniem składni**
+- ✅ **HTML** - kolorowanie tagów, atrybutów
+- ✅ **CSS** - właściwości, selektory, kolory
+- ✅ **JavaScript** - słowa kluczowe, funkcje
+- ✅ **JSON** - obiekty, tablice, wartości
+- ✅ **XML** - struktury, atrybuty
+- ✅ **Markdown** - nagłówki, linki, formatowanie
+- ✅ **Python** - składnia, słowa kluczowe
+- ✅ **SQL** - zapytania, komendy
+- ✅ **YAML** - struktury, wcięcia
+- ✅ **PHP** - kod, zmienne
+
+### 3. **Struktura EML po rozpakowaniu**
+```
+email.eml → .qra/
+├── email_body.html      # Wersja HTML emaila
+├── email_text.txt       # Wersja tekstowa
+├── email_headers.md     # Nagłówki (From, To, Subject)
+├── attachment1.pdf      # Załączniki
+├── attachment2.jpg
+└── metadata.json        # Metadane MIME
+```
+
+### 4. **Specjalne funkcje dla EML**
+- **Nagłówki email**: From, To, Subject, Date
+- **Treść wieloformatowa**: HTML + tekst
+- **Załączniki**: Automatyczne wyodrębnienie
+- **Metadata**: Zachowanie informacji MIME
+
+## 📧 Przykłady użycia EML:
+
+### Edycja emaila marketingowego:
+```bash
+qra edit newsletter.eml --template basic
+# Edytuj HTML email
+# Dodaj style CSS
+# Przetestuj w podglądzie
+```
+
+### Analiza phishingu:
+```bash
+qra edit suspicious.eml
+# Sprawdź nagłówki w email_headers.md
+# Analizuj HTML w email_body.html
+# Zbadaj załączniki
+```
+
+### Archiwizacja korespondencji:
+```bash
+qra search "contract"+"signature" --path ./emails/ -L 1 -v
+# Znajdź wszystkie emaile z umowami
+# Przeanalizuj treść i załączniki
+```
+
+## 🎨 Interface z kolorowaniem:
+
+```
+┌───────────────────────────────────────────────────────────────────┐
+│                     QRA Editor - EML                              │
+├─────────────────────┬─────────────────────────┬───────────────────┤
+│   📧 Pliki          │      🖋️  CodeMirror     │    👁️ Podgląd     │
+│                     │                         │                   │
+│ • email_body.html   │  <!DOCTYPE html>        │   ┌─────────────┐ │
+│ • email_text.txt    │  <html>                 │   │   Email     │ │
+│ • email_headers.md  │    <head>               │   │  Preview    │ │
+│ • attachment.pdf    │      <style>            │   │             │ │
+│                     │        body {           │   │ Subject:... │ │
+│ [HTML] Auto-save    │          color: #333;   │   │ From: ...   │ │
+│ 🔄 5s timer         │        }                │   │             │ │
+│                     │      </style>           │   └─────────────┘ │
+└─────────────────────┴─────────────────────────┴───────────────────┘
+```
+
+## 🔧 Zalety CodeMirror:
+
+### Dla programistów:
+- **Numerowanie linii**
+- **Dopasowywanie nawiasów**
+- **Auto-domykanie tagów**
+- **Składanie kodu**
+- **Podświetlenie aktywnej linii**
+
+### Dla treści:
+- **Syntax highlighting** według typu pliku
+- **Motyw Monokai** (ciemny)
+- **Automatyczne wcięcia**
+- **Zawijanie linii**
+
+## 🚀 Testowanie:
+
+```bash
+# 1. Utwórz testowy email
+qra edit test.eml --template basic
+
+# 2. Sprawdź strukturę
+ls -la .qra/
+
+# 3. Edytuj pliki w CodeMirror
+# - email_body.html → kolorowanie HTML
+# - email_headers.md → kolorowanie Markdown
+# - Dodaj style.css → kolorowanie CSS
+
+# 4. Zobacz podgląd HTML emaila
+```
+
+Teraz QRA to kompletne narzędzie do **MHTML i EML** z profesjonalnym edytorem kodu!
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## Licencja
 
 Apache Software License - używaj dowolnie w projektach osobistych i komercyjnych.

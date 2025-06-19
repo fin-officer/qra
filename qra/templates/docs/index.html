@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title | default('Dokumentacja') }}</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="sidebar-content">
+            <h1 class="project-title">{{ project_name | default('Dokumentacja') }}</h1>
+            <div class="search-box">
+                <input type="text" placeholder="Szukaj..." id="search-input">
+                <button id="search-button">Szukaj</button>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="#introduction" class="nav-link">Wprowadzenie</a></li>
+                <li><a href="#installation" class="nav-link">Instalacja</a></li>
+                <li><a href="#usage" class="nav-link">Użytkowanie</a></li>
+                <li><a href="#api" class="nav-link">API Reference</a></li>
+                <li><a href="#examples" class="nav-link">Przykłady</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="content">
+        <section id="introduction">
+            <h1>Wprowadzenie</h1>
+            <p>Witaj w dokumentacji! Ten szablon został stworzony dla projektów wymagających przejrzystej dokumentacji.</p>
+
+            <div class="alert alert-info">
+                <strong>Informacja:</strong> To jest przykładowa dokumentacja utworzona przez QRA.
+            </div>
+        </section>
+
+        <section id="installation">
+            <h2>Instalacja</h2>
+            <p>Aby zainstalować projekt, wykonaj następujące kroki:</p>
+
+            <pre><code>npm install your-package
+# lub
+yarn add your-package</code></pre>
+        </section>
+
+        <section id="usage">
+            <h2>Użytkowanie</h2>
+            <p>Podstawowe użytkowanie:</p>
+
+            <pre><code>import YourPackage from 'your-package';
+
+const instance = new YourPackage({
+    option1: 'value1',
+    option2: 'value2'
+});
+
+instance.doSomething();</code></pre>
+        </section>
+
+
+        <section id="api">
+            <h2>API Reference</h2>
+
+            <div class="api-method">
+                <h3><code>doSomething(params)</code></h3>
+                <p>Opis metody i jej działania.</p>
+
+                <h4>Parametry:</h4>
+                <ul>
+                    <li><code>param1</code> (string) - Opis pierwszego parametru</li>
+                    <li><code>param2</code> (number) - Opis drugiego parametru</li>
+                </ul>
+
+                <h4>Zwraca:</h4>
+                <p><code>Promise&lt;string&gt;</code> - Opis zwracanej wartości</p>
+            </div>
+        </section>
+
+
+        <section id="examples">
+            <h2>Przykłady</h2>
+
+            <h3>Przykład 1: Podstawowe użycie</h3>
+            <pre><code>const result = await instance.doSomething({
+    input: 'test data',
+    options: { verbose: true }
+});
+
+console.log(result);</code></pre>
+
+            <h3>Przykład 2: Zaawansowana konfiguracja</h3>
+            <pre><code>const advancedInstance = new YourPackage({
+    apiKey: 'your-api-key',
+    timeout: 5000,
+    retries: 3
+});
+
+try {
+    const data = await advancedInstance.processData(input);
+    console.log('Sukces:', data);
+} catch (error) {
+    console.error('Błąd:', error.message);
+}</code></pre>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>

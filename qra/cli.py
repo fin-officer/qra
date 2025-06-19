@@ -1,8 +1,8 @@
-import click
 import os
 import webbrowser
 import threading
 import time
+import click
 from pathlib import Path
 from .core import MHTMLProcessor
 from .server import create_app
@@ -22,21 +22,28 @@ def main():
               type=click.Choice(['basic', 'portfolio', 'blog', 'docs', 'landing']),
               help='Template dla nowego pliku')
 def edit(filename, port, host, template):
-    """Otwórz edytor MHTML w przeglądarce
+    """Otwórz edytor MHTML/EML w przeglądarce
 
     Jeśli plik nie istnieje, zostanie automatycznie utworzony.
+    Obsługuje pliki .mhtml i .eml
     """
-    if filename and not filename.endswith('.mhtml'):
-        filename += '.mhtml'
+    if filename:
+        # Sprawdź rozszerzenie i dodaj odpowiednie jeśli brak
+        if not any(filename.endswith(ext) for ext in ['.mhtml', '.eml']):
+            filename += '.mhtml'
 
     # Automatycznie utwórz plik jeśli nie istnieje
     if filename and not os.path.exists(filename):
-        click.echo(f"📄 Plik {filename} nie istnieje - tworzenie nowego pliku...")
+        file_type = "EML" if filename.endswith('.eml') else "MHTML"
+        click.echo(f"📄 Plik {filename} nie istnieje - tworzenie nowego pliku {file_type}...")
 
         processor = MHTMLProcessor()
-        processor.create_mhtml_from_template(filename, template)
+        if filename.endswith('.eml'):
+            processor.create_eml_from_template(filename, template)
+        else:
+            processor.create_mhtml_from_template(filename, template)
 
-        click.echo(f"✅ Utworzono nowy plik MHTML: {filename}")
+        click.echo(f"✅ Utworzono nowy plik {file_type}: {filename}")
         click.echo(f"📝 Użyty template: {template}")
         click.echo(f"🔧 Rozpakowywanie do folderu .qra/")
 
@@ -65,6 +72,7 @@ def edit(filename, port, host, template):
         app.run(host=host, port=port, debug=False)
     except KeyboardInterrupt:
         click.echo(f"\n👋 Edytor zatrzymany. Plik {filename} został zapisany.")
+    pass
 
 
 @main.command()
@@ -191,6 +199,25 @@ def search(query, path, level, scope, verbose):
 
         if len(matches) > max_matches:
             click.echo(f"   ... i {len(matches) - max_matches} więcej")
+
+    @main.command()
+    @click.argument('input_file')
+    @click.argument('output_file', required=False)
+    @click.option('--inline/--separate', default=True, help='Inline CSS/JS lub osobne pliki')
+    def export(input_file, output_file, inline):
+        """Eksportuj MHTML do HTML dla przeglądarek"""
+        if not output_file:
+            output_file = input_file.replace('.mhtml', '.html')
+
+        processor = MHTMLProcessor(input_file)
+        processor.export_to_html(output_file, inline_assets=inline)
+
+        click.echo(f"✅ Wyeksportowano: {input_file} → {output_file}")
+        if inline:
+            click.echo("📦 Wszystkie zasoby inline - plik gotowy do przeglądarki")
+        else:
+            click.echo("📁 Zasoby jako osobne pliki")
+
 
 
 def calculate_search_path(base_path, scope_levels):

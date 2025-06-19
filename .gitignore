@@ -2,6 +2,15 @@
 venv
 poetry.lock
 .env
+.qra
+.eml
+.html
+.mhtml
+.mht
+.mhtx
+.mhtml
+.mhtx
+.mhtml
 # Python
 __pycache__/
 *.py[cod]

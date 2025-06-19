@@ -44,6 +44,21 @@ def create_app():
 <head>
     <title>QRA Editor</title>
     <meta charset="utf-8">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/theme/monokai.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/htmlmixed/htmlmixed.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/markdown/markdown.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/sql/sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/yaml/yaml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/php/php.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/edit/closebrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/selection/active-line.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
@@ -55,7 +70,7 @@ def create_app():
         .main-content { flex: 1; display: flex; flex-direction: column; }
 
         .header { background: #2d2d30; padding: 10px 20px; border-bottom: 1px solid #3e3e42;
-                  display: flex; justify-content: between; align-items: center; }
+                  display: flex; justify-content: space-between; align-items: center; }
         .header h1 { font-size: 18px; color: #cccccc; }
         .save-status { font-size: 12px; color: #608b4e; margin-left: auto; }
 
@@ -73,11 +88,10 @@ def create_app():
         .preview { flex: 1; background: white; border-left: 1px solid #3e3e42; }
 
         .editor-header { background: #2d2d30; padding: 8px 20px; border-bottom: 1px solid #3e3e42;
-                         font-size: 13px; color: #cccccc; }
+                         font-size: 13px; color: #cccccc; display: flex; justify-content: space-between; align-items: center; }
 
-        #code-editor { flex: 1; background: #1e1e1e; color: #d4d4d4; border: none; outline: none;
-                       font-family: 'Consolas', 'Monaco', monospace; font-size: 14px; line-height: 1.4;
-                       padding: 20px; resize: none; }
+        .editor-container { flex: 1; position: relative; }
+        .CodeMirror { height: 100% !important; font-size: 14px; }
 
         #preview-frame { width: 100%; height: 100%; border: none; background: white; }
 
@@ -88,6 +102,18 @@ def create_app():
         .btn:hover { background: #1177bb; }
         .btn.secondary { background: #5a5a5a; }
         .btn.secondary:hover { background: #6a6a6a; }
+
+        .file-type-badge { 
+            background: #007acc; color: white; padding: 2px 6px; border-radius: 3px; 
+            font-size: 10px; font-weight: bold; text-transform: uppercase;
+        }
+        .file-type-badge.html { background: #e34c26; }
+        .file-type-badge.css { background: #1572b6; }
+        .file-type-badge.javascript { background: #f1e05a; color: #333; }
+        .file-type-badge.python { background: #3572a5; }
+        .file-type-badge.markdown { background: #083fa1; }
+        .file-type-badge.json { background: #292929; }
+        .file-type-badge.xml { background: #0060ac; }
 
         .loading { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
                    background: rgba(0,0,0,0.8); color: white; padding: 20px; border-radius: 8px; }
@@ -113,9 +139,12 @@ def create_app():
             <div class="editor-area">
                 <div class="editor">
                     <div class="editor-header" id="editor-header">
-                        Wybierz plik do edycji
+                        <span>Wybierz plik do edycji</span>
+                        <span id="file-type-indicator"></span>
                     </div>
-                    <textarea id="code-editor" placeholder="Wybierz plik z listy po lewej stronie..."></textarea>
+                    <div class="editor-container" id="editor-container">
+                        <textarea id="code-editor" style="display: none;"></textarea>
+                    </div>
                 </div>
                 <div class="preview">
                     <iframe id="preview-frame" src="/preview"></iframe>
@@ -130,6 +159,46 @@ def create_app():
         let currentFile = null;
         let files = [];
         let autoSaveTimer = null;
+        let editor = null;
+
+        // Inicjalizuj CodeMirror
+        function initializeEditor() {
+            const textarea = document.getElementById('code-editor');
+            editor = CodeMirror.fromTextArea(textarea, {
+                lineNumbers: true,
+                theme: 'monokai',
+                autoCloseBrackets: true,
+                matchBrackets: true,
+                styleActiveLine: true,
+                indentUnit: 2,
+                tabSize: 2,
+                lineWrapping: true
+            });
+
+            editor.on('change', function() {
+                updateSaveStatus('modified');
+                scheduleAutoSave();
+            });
+        }
+
+        // Ustaw tryb edytora na podstawie typu pliku
+        function setEditorMode(fileType) {
+            const modeMap = {
+                'html': 'htmlmixed',
+                'css': 'css',
+                'javascript': 'javascript',
+                'json': {name: 'javascript', json: true},
+                'xml': 'xml',
+                'markdown': 'markdown',
+                'python': 'python',
+                'sql': 'sql',
+                'yaml': 'yaml',
+                'php': 'php'
+            };
+
+            const mode = modeMap[fileType] || 'text';
+            editor.setOption('mode', mode);
+        }
 
         // Załaduj listę plików
         function loadFiles() {
@@ -152,7 +221,7 @@ def create_app():
                      onclick="selectFile('${file.name}')">
                     <div>
                         <div class="file-name">${file.name}</div>
-                        <div class="file-type">${file.type}</div>
+                        <span class="file-type-badge ${file.type}">${file.type}</span>
                     </div>
                     <div class="file-size">${formatFileSize(file.size)}</div>
                 </div>
@@ -165,12 +234,14 @@ def create_app():
 
             currentFile = typeof file === 'string' ? files.find(f => f.name === file) : file;
 
-            document.getElementById('editor-header').textContent = `Edycja: ${currentFile.name}`;
-            document.getElementById('code-editor').value = currentFile.content;
+            document.getElementById('editor-header').querySelector('span').textContent = `Edycja: ${currentFile.name}`;
+            document.getElementById('file-type-indicator').textContent = currentFile.type.toUpperCase();
 
-            // Ustaw tryb edytora na podstawie typu pliku
-            const editor = document.getElementById('code-editor');
-            editor.setAttribute('data-language', currentFile.type);
+            if (editor) {
+                editor.setValue(currentFile.content);
+                setEditorMode(currentFile.type);
+                editor.refresh();
+            }
 
             renderFileList();
             scheduleAutoSave();
@@ -188,13 +259,13 @@ def create_app():
                 if (currentFile) {
                     saveCurrentFile();
                 }
-            }, 2000); // Auto-save po 2 sekundach od ostatniej zmiany
+            }, 2000);
         }
 
         function saveCurrentFile() {
-            if (!currentFile) return;
+            if (!currentFile || !editor) return;
 
-            const content = document.getElementById('code-editor').value;
+            const content = editor.getValue();
             currentFile.content = content;
 
             fetch('/api/save-file', {
@@ -226,7 +297,7 @@ def create_app():
             .then(data => {
                 if (data.success) {
                     updateSaveStatus('saved');
-                    alert('Wszystkie pliki zostały zapisane do MHTML');
+                    alert('Wszystkie pliki zostały zapisane do MHTML/EML');
                 }
             })
             .catch(error => {
@@ -274,12 +345,6 @@ def create_app():
             });
         }
 
-        // Event listeners
-        document.getElementById('code-editor').addEventListener('input', () => {
-            updateSaveStatus('modified');
-            scheduleAutoSave();
-        });
-
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
             if (e.ctrlKey || e.metaKey) {
@@ -294,7 +359,10 @@ def create_app():
         });
 
         // Initialize
-        loadFiles();
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeEditor();
+            loadFiles();
+        });
 
         // Auto-refresh preview every 10 seconds
         setInterval(() => {
@@ -307,120 +375,6 @@ def create_app():
 </body>
 </html>
     '''
-
-    @app.route('/')
-    def index():
-        return render_template_string(EDITOR_TEMPLATE)
-
-    @app.route('/api/files')
-    def get_files():
-        try:
-            current_file = app.config.get('CURRENT_FILE')
-            if current_file:
-                processor = MHTMLProcessor(current_file)
-                files = processor.get_qra_files()
-                return jsonify({'success': True, 'files': files})
-            else:
-                return jsonify({'success': True, 'files': []})
-        except Exception as e:
-            return jsonify({'success': False, 'error': str(e)}), 500
-
-    @app.route('/api/save-file', methods=['POST'])
-    def save_file():
-        try:
-            data = request.get_json()
-            filename = data['filename']
-            content = data['content']
-
-            current_file = app.config.get('CURRENT_FILE')
-            if current_file:
-                processor = MHTMLProcessor(current_file)
-                processor.save_file_content(filename, content)
-                return jsonify({'success': True})
-            else:
-                return jsonify({'success': False, 'error': 'Brak aktywnego pliku'}), 400
-
-        except Exception as e:
-            return jsonify({'success': False, 'error': str(e)}), 500
-
-    @app.route('/api/save-all', methods=['POST'])
-    def save_all():
-        try:
-            current_file = app.config.get('CURRENT_FILE')
-            if current_file:
-                processor = MHTMLProcessor(current_file)
-                processor.pack_from_qra_folder()
-                return jsonify({'success': True})
-            else:
-                return jsonify({'success': False, 'error': 'Brak aktywnego pliku'}), 400
-
-        except Exception as e:
-            return jsonify({'success': False, 'error': str(e)}), 500
-
-    @app.route('/api/add-file', methods=['POST'])
-    def add_file():
-        try:
-            data = request.get_json()
-            filename = data['filename']
-
-            # Dodaj rozszerzenie jeśli nie ma
-            if '.' not in filename:
-                filename += '.html'
-
-            current_file = app.config.get('CURRENT_FILE')
-            if current_file:
-                processor = MHTMLProcessor(current_file)
-
-                # Zawartość domyślna na podstawie rozszerzenia
-                ext = filename.split('.')[-1].lower()
-                if ext == 'html':
-                    content = '<!DOCTYPE html>\n<html>\n<head>\n    <title>New Page</title>\n</head>\n<body>\n    <h1>New Page</h1>\n</body>\n</html>'
-                elif ext == 'css':
-                    content = '/* New stylesheet */\nbody {\n    font-family: Arial, sans-serif;\n}\n'
-                elif ext == 'js':
-                    content = '// New JavaScript file\nconsole.log("Hello from new file");\n'
-                else:
-                    content = ''
-
-                processor.save_file_content(filename, content)
-                return jsonify({'success': True})
-            else:
-                return jsonify({'success': False, 'error': 'Brak aktywnego pliku'}), 400
-
-        except Exception as e:
-            return jsonify({'success': False, 'error': str(e)}), 500
-
-    @app.route('/preview')
-    def preview():
-        try:
-            current_file = app.config.get('CURRENT_FILE')
-            if not current_file:
-                return '<html><body><h1>Brak aktywnego pliku</h1><p>Użyj <code>qra edit filename.mhtml</code></p></body></html>'
-
-            processor = MHTMLProcessor(current_file)
-            files = processor.get_qra_files()
-
-            # Znajdź główny plik HTML
-            html_file = None
-            for file in files:
-                if file['name'].endswith('.html') or file['type'] == 'html':
-                    html_file = file
-                    break
-
-            if not html_file:
-                return '<html><body><h1>Brak pliku HTML</h1><p>Dodaj plik .html aby zobaczyć podgląd</p></body></html>'
-
-            return html_file['content']
-
-        except Exception as e:
-            return f'<html><body><h1>Błąd podglądu</h1><p>{str(e)}</p></body></html>'
-
-    # Start auto-save when app starts
-    @app.before_first_request
-    def start_auto_save():
-        current_file = app.config.get('CURRENT_FILE')
-        if current_file:
-            processor = MHTMLProcessor(current_file)
-            auto_save_manager.start(processor)
-
+    
+    # Return the Flask app object instead of the HTML template
     return app
