@@ -1,8 +1,9 @@
-from flask import Flask, render_template_string, request, jsonify, send_from_directory
+from flask import Flask, render_template_string, request, jsonify, send_from_directory, send_file
 import threading
 import time
 from .core import MHTMLProcessor
 import os, json
+from pathlib import Path
 
 # Auto-save thread
 class AutoSaveManager:
@@ -46,7 +47,7 @@ def create_app():
     <meta charset="utf-8">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/theme/monokai.min.css">
-    <link rel="stylesheet" href="/qra/styles.css">
+    <link rel="stylesheet" href="/static/styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/xml/xml.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/css/css.min.js"></script>
@@ -60,7 +61,7 @@ def create_app():
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/edit/closebrackets.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/edit/matchbrackets.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/selection/active-line.min.js"></script>
-    <script src="/qra/script.js"></script>
+    <script src="/static/script.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
@@ -403,6 +404,24 @@ def create_app():
     @app.route('/qra/<path:filename>')
     def serve_qra_file(filename):
         return send_from_directory('.qra', filename)
+        
+    @app.route('/static/<template_name>/<path:filename>')
+    def serve_static(template_name, filename):
+        # Security: Ensure template_name doesn't contain path traversal
+        if '..' in template_name or template_name.startswith('/'):
+            return "Invalid template name", 400
+            
+        # Define allowed file types
+        allowed_extensions = {'.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg'}
+        if not any(filename.lower().endswith(ext) for ext in allowed_extensions):
+            return "File type not allowed", 403
+            
+        # Build the path to the template directory
+        template_dir = os.path.join('qra', 'templates', template_name)
+        if not os.path.exists(template_dir) or not os.path.isdir(template_dir):
+            return "Template not found", 404
+            
+        return send_from_directory(template_dir, filename)
 
     @app.route('/api/files')
     def api_files():
@@ -440,8 +459,33 @@ def create_app():
             html_path = os.path.join('.qra', html_name)
             if os.path.exists(html_path):
                 with open(html_path, 'r', encoding='utf-8') as f:
-                    return f.read(), 200, {'Content-Type': 'text/html'}
+                    content = f.read()
+                    # Update relative paths to use absolute paths
+                    content = content.replace('href="styles.css"', 'href="/preview/static/styles.css"')
+                    content = content.replace('src="script.js"', 'src="/preview/static/script.js"')
+                    return content, 200, {'Content-Type': 'text/html'}
         return 'No preview available', 404
+        
+    @app.route('/preview/static/<path:filename>')
+    def preview_static(filename):
+        # Security: Only allow specific file types
+        allowed_extensions = {'.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg'}
+        if not any(filename.lower().endswith(ext) for ext in allowed_extensions):
+            return 'File type not allowed', 403
+            
+        # Serve files from the .qra directory
+        return send_from_directory('.qra', filename)
+        
+    # Serve static files from .qra directory for the main editor
+    @app.route('/static/<path:filename>')
+    def static_files(filename):
+        # Security: Only allow specific file types
+        allowed_extensions = {'.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg'}
+        if not any(filename.lower().endswith(ext) for ext in allowed_extensions):
+            return 'File type not allowed', 403
+            
+        # Serve files from the .qra directory
+        return send_from_directory('.qra', filename)
 
     # Return the Flask app object instead of the HTML template
     return app

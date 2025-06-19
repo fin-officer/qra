@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "qra"
-version = "0.1.3"
+version = "0.1.4"
 description = "MHTML editor and processor with live preview"
 authors = ["Tom Sapletta <info@softreck.dev>"]
 readme = "README.md"

@@ -1,0 +1,42 @@
+Zwiększyć ilośc template do np rachunku z tabelą i danymi
+z formatem XML wbudowanym, ktory jest stadnardem w EU
+
+
+dodac obsluge xlsx i docx
+konwkersja danych z xlsx do json i html renderujacy tabele
+i ladowanie automatycznie do tabeli z json
+
+obsluga pdf, konweersja pdf do png z OCR i opisem metadanych
+trzeba najpier stworzyc detekcje danych 
+potem ekstrakcje do odpowiedniego typu dokumentu i renderowania z html danych z json 
+w defragmentacja obrazow, detekcja, gdzie sa napisy i w zaleznosci od typu danych
+jesli to Cv to dodawanie danych z CV poprzez  ocr do formatu JSON
+
+tworzenie z klatek video dokumentu z metadanymi, video captioniong
+z mozliwoscia exportu mhtml do eml, html w celu przeslania  dalej, plik graficzny podobnie jak w prztwwrzaniu z pdf do mhtml
+z wtykrywaniem typu sceny i opisem co znajduje sie na scenie,
+mozliwosc tez apisania wielu scen, tak jak wielu stron pliku pdf
+
+podczas edycji w oknie edytora co 2 sekundy aktualizacja i renderowanie na nowo pliku po prooawej html i autosave calego dokumentu w mhtml
+
+obsluga git
+z historia zmian zapisana w formacie  .git z dostepem do zmian poprzez komdeny git w .qra
+
+czy pliki są poprawnie ladowane podczas servowania plikow przez seerver? czy ma dostep do danych css, jss ?
+
+
+używajac komendy qra nazwapliku.pdf tworzy plik mhtml z danymi z pdf poprzez prosty OCR wbudowany w qra, ale mozna podlaczyc zewnetrzne uslugi poprzez konfiguracje
+
+qra config --set ocr ocr-service
+qra config --set pdf pdf-service
+qra config --set image image-service    
+
+qra config --get ocr
+qra config --get pdf
+qra config --get image
+
+
+oraz wizualnie edycja danych tak jak plikow mhtml z uzywaniem service dla edycji konfiugracji np w formacie json
+gdzie powinny byc przehcowywane dane konfioguracjyjne i w jakim formacie?
+
+lub 
