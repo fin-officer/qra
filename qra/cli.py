@@ -200,24 +200,88 @@ def search(query, path, level, scope, verbose):
         if len(matches) > max_matches:
             click.echo(f"   ... i {len(matches) - max_matches} więcej")
 
-    @main.command()
-    @click.argument('input_file')
-    @click.argument('output_file', required=False)
-    @click.option('--inline/--separate', default=True, help='Inline CSS/JS lub osobne pliki')
-    def export(input_file, output_file, inline):
-        """Eksportuj MHTML do HTML dla przeglądarek"""
-        if not output_file:
-            output_file = input_file.replace('.mhtml', '.html')
 
-        processor = MHTMLProcessor(input_file)
-        processor.export_to_html(output_file, inline_assets=inline)
+@main.command()
+@click.argument('input_file')
+@click.argument('output_file')
+def export(input_file, output_file):
+    """Eksportuj HTML z pliku MHTML/EML do pliku HTML
 
-        click.echo(f"✅ Wyeksportowano: {input_file} → {output_file}")
-        if inline:
-            click.echo("📦 Wszystkie zasoby inline - plik gotowy do przeglądarki")
-        else:
-            click.echo("📁 Zasoby jako osobne pliki")
+    Przykład: qra export email.mhtml email.html
+    """
+    processor = MHTMLProcessor(input_file)
+    processor.extract_to_qra_folder()
+    html_path = '.qra/html_body.html'
+    if not os.path.exists(html_path):
+        # Fallback to index.html if html_body.html doesn't exist
+        html_path = '.qra/index.html'
+        if not os.path.exists(html_path):
+            click.echo(f'Nie znaleziono HTML w {input_file} (brak .qra/html_body.html ani .qra/index.html)')
+            return
 
+    from bs4 import BeautifulSoup
+    import re, mimetypes, base64
+
+    with open(html_path, 'r', encoding='utf-8') as f_in:
+        soup = BeautifulSoup(f_in, 'html.parser')
+
+    # Inline CSS files
+    for link in soup.find_all('link', rel='stylesheet'):
+        href = link.get('href')
+        if href:
+            css_path = os.path.join('.qra', href)
+            if os.path.exists(css_path):
+                with open(css_path, 'r', encoding='utf-8') as f_css:
+                    css_content = f_css.read()
+                style_tag = soup.new_tag('style')
+                style_tag.string = css_content
+                link.replace_with(style_tag)
+
+    # Inline JS files
+    for script in soup.find_all('script', src=True):
+        src = script.get('src')
+        js_path = os.path.join('.qra', src)
+        if os.path.exists(js_path):
+            with open(js_path, 'r', encoding='utf-8') as f_js:
+                js_content = f_js.read()
+            script_tag = soup.new_tag('script')
+            script_tag.string = js_content
+            script.replace_with(script_tag)
+
+    # Inline images and other assets (base64)
+    for tag in soup.find_all(['img', 'audio', 'video', 'source']):
+        src = tag.get('src')
+        if src:
+            asset_path = os.path.join('.qra', src)
+            if os.path.exists(asset_path):
+                mime, _ = mimetypes.guess_type(asset_path)
+                with open(asset_path, 'rb') as f_asset:
+                    b64 = base64.b64encode(f_asset.read()).decode('utf-8')
+                tag['src'] = f'data:{mime};base64,{b64}'
+
+    # Write the modified HTML
+    with open(output_file, 'w', encoding='utf-8') as f_out:
+        f_out.write(str(soup))
+    click.echo(f'Wyeksportowano HTML z {input_file} do {output_file} (wszystkie assety inline)')
+
+
+@main.command()
+@click.argument('input_file')
+@click.argument('output_file', required=False)
+@click.option('--inline/--separate', default=True, help='Inline CSS/JS lub osobne pliki')
+def export_html(input_file, output_file, inline):
+    """Eksportuj MHTML do HTML dla przeglądarek"""
+    if not output_file:
+        output_file = input_file.replace('.mhtml', '.html')
+
+    processor = MHTMLProcessor(input_file)
+    processor.export_to_html(output_file, inline_assets=inline)
+
+    click.echo(f"✅ Wyeksportowano: {input_file} → {output_file}")
+    if inline:
+        click.echo("📦 Wszystkie zasoby inline - plik gotowy do przeglądarki")
+    else:
+        click.echo("📁 Zasoby jako osobne pliki")
 
 
 def calculate_search_path(base_path, scope_levels):

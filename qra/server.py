@@ -1,8 +1,8 @@
-from flask import Flask, render_template_string, request, jsonify
+from flask import Flask, render_template_string, request, jsonify, send_from_directory
 import threading
 import time
 from .core import MHTMLProcessor
-
+import os, json
 
 # Auto-save thread
 class AutoSaveManager:
@@ -46,6 +46,7 @@ def create_app():
     <meta charset="utf-8">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/theme/monokai.min.css">
+    <link rel="stylesheet" href="/qra/styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/xml/xml.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/css/css.min.js"></script>
@@ -59,6 +60,7 @@ def create_app():
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/edit/closebrackets.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/edit/matchbrackets.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/selection/active-line.min.js"></script>
+    <script src="/qra/script.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
@@ -208,7 +210,7 @@ def create_app():
                 files = data.files;
                 renderFileList();
                 if (files.length > 0 && !currentFile) {
-                    selectFile(files[0]);
+                    selectFile(files[0].name);
                 }
             })
             .catch(error => console.error('Error loading files:', error));
@@ -228,23 +230,42 @@ def create_app():
             `).join('');
         }
 
-        function selectFile(fileName) {
-            const file = files.find(f => f.name === fileName || f === fileName);
-            if (!file) return;
+        function selectFile(filename) {
+            fetch(`/api/file?name=${encodeURIComponent(filename)}`)
+                .then(res => res.json())
+                .then(data => {
+                    editor.setValue(data.content || "");
+                    currentFile = filename;
+                    updateEditorHeader(filename);
+                    setEditorMode(getFileType(filename));
+                    // If HTML, reload preview
+                    if (getFileType(filename) === 'html') {
+                        document.getElementById('preview-frame').src = '/preview?' + Date.now();
+                    }
+                });
+        }
 
-            currentFile = typeof file === 'string' ? files.find(f => f.name === file) : file;
+        function updateEditorHeader(filename) {
+            document.getElementById('editor-header').innerHTML =
+                `<span>${filename}</span><span id="file-type-indicator">${getFileType(filename)}</span>`;
+        }
 
-            document.getElementById('editor-header').querySelector('span').textContent = `Edycja: ${currentFile.name}`;
-            document.getElementById('file-type-indicator').textContent = currentFile.type.toUpperCase();
-
-            if (editor) {
-                editor.setValue(currentFile.content);
-                setEditorMode(currentFile.type);
-                editor.refresh();
-            }
-
-            renderFileList();
-            scheduleAutoSave();
+        function getFileType(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            const map = {
+                'js': 'javascript',
+                'py': 'python',
+                'md': 'markdown',
+                'json': 'json',
+                'html': 'html',
+                'css': 'css',
+                'xml': 'xml',
+                'php': 'php',
+                'sql': 'sql',
+                'yml': 'yaml',
+                'yaml': 'yaml'
+            };
+            return map[ext] || ext;
         }
 
         function formatFileSize(bytes) {
@@ -266,13 +287,11 @@ def create_app():
             if (!currentFile || !editor) return;
 
             const content = editor.getValue();
-            currentFile.content = content;
-
             fetch('/api/save-file', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    filename: currentFile.name,
+                    filename: currentFile,
                     content: content
                 })
             })
@@ -376,5 +395,53 @@ def create_app():
 </html>
     '''
     
+    @app.route('/')
+    def index():
+        # Serve the main editor interface
+        return EDITOR_TEMPLATE
+
+    @app.route('/qra/<path:filename>')
+    def serve_qra_file(filename):
+        return send_from_directory('.qra', filename)
+
+    @app.route('/api/files')
+    def api_files():
+        # List files in .qra/ directory with metadata
+        qra_dir = '.qra'
+        files = []
+        for fname in os.listdir(qra_dir):
+            fpath = os.path.join(qra_dir, fname)
+            if os.path.isfile(fpath):
+                ext = fname.split('.')[-1].lower() if '.' in fname else ''
+                size = os.path.getsize(fpath)
+                files.append({
+                    'name': fname,
+                    'type': ext,
+                    'size': size
+                })
+        return json.dumps({'files': files}), 200, {'Content-Type': 'application/json'}
+
+    @app.route('/api/file')
+    def api_file():
+        filename = request.args.get('name')
+        if not filename:
+            return 'Missing filename', 400
+        fpath = os.path.join('.qra', filename)
+        if not os.path.isfile(fpath):
+            return 'File not found', 404
+        with open(fpath, 'r', encoding='utf-8', errors='ignore') as f:
+            content = f.read()
+        return jsonify({'name': filename, 'content': content})
+
+    @app.route('/preview')
+    def preview():
+        # Serve the main HTML part for preview
+        for html_name in ['html_body.html', 'index.html']:
+            html_path = os.path.join('.qra', html_name)
+            if os.path.exists(html_path):
+                with open(html_path, 'r', encoding='utf-8') as f:
+                    return f.read(), 200, {'Content-Type': 'text/html'}
+        return 'No preview available', 404
+
     # Return the Flask app object instead of the HTML template
     return app
