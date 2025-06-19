@@ -152,3 +152,275 @@ def create_app():
                      onclick="selectFile('${file.name}')">
                     <div>
                         <div class="file-name">${file.name}</div>
+                        <div class="file-type">${file.type}</div>
+                    </div>
+                    <div class="file-size">${formatFileSize(file.size)}</div>
+                </div>
+            `).join('');
+        }
+
+        function selectFile(fileName) {
+            const file = files.find(f => f.name === fileName || f === fileName);
+            if (!file) return;
+
+            currentFile = typeof file === 'string' ? files.find(f => f.name === file) : file;
+
+            document.getElementById('editor-header').textContent = `Edycja: ${currentFile.name}`;
+            document.getElementById('code-editor').value = currentFile.content;
+
+            // Ustaw tryb edytora na podstawie typu pliku
+            const editor = document.getElementById('code-editor');
+            editor.setAttribute('data-language', currentFile.type);
+
+            renderFileList();
+            scheduleAutoSave();
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' KB';
+            return Math.round(bytes / (1024 * 1024)) + ' MB';
+        }
+
+        function scheduleAutoSave() {
+            clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(() => {
+                if (currentFile) {
+                    saveCurrentFile();
+                }
+            }, 2000); // Auto-save po 2 sekundach od ostatniej zmiany
+        }
+
+        function saveCurrentFile() {
+            if (!currentFile) return;
+
+            const content = document.getElementById('code-editor').value;
+            currentFile.content = content;
+
+            fetch('/api/save-file', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    filename: currentFile.name,
+                    content: content
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateSaveStatus('saved');
+                    // Odśwież podgląd
+                    document.getElementById('preview-frame').src = '/preview?' + Date.now();
+                }
+            })
+            .catch(error => {
+                console.error('Save error:', error);
+                updateSaveStatus('error');
+            });
+        }
+
+        function saveAll() {
+            updateSaveStatus('saving');
+            fetch('/api/save-all', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateSaveStatus('saved');
+                    alert('Wszystkie pliki zostały zapisane do MHTML');
+                }
+            })
+            .catch(error => {
+                console.error('Save all error:', error);
+                updateSaveStatus('error');
+            });
+        }
+
+        function updateSaveStatus(status) {
+            const statusEl = document.getElementById('save-status');
+            switch(status) {
+                case 'saved':
+                    statusEl.style.color = '#608b4e';
+                    statusEl.textContent = '●';
+                    break;
+                case 'saving':
+                    statusEl.style.color = '#dcdcaa';
+                    statusEl.textContent = '◐';
+                    break;
+                case 'modified':
+                    statusEl.style.color = '#f44747';
+                    statusEl.textContent = '●';
+                    break;
+                case 'error':
+                    statusEl.style.color = '#f44747';
+                    statusEl.textContent = '✕';
+                    break;
+            }
+        }
+
+        function addFile() {
+            const name = prompt('Nazwa nowego pliku:');
+            if (!name) return;
+
+            fetch('/api/add-file', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename: name })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    loadFiles();
+                }
+            });
+        }
+
+        // Event listeners
+        document.getElementById('code-editor').addEventListener('input', () => {
+            updateSaveStatus('modified');
+            scheduleAutoSave();
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                if (e.key === 's') {
+                    e.preventDefault();
+                    saveCurrentFile();
+                } else if (e.key === 'n') {
+                    e.preventDefault();
+                    addFile();
+                }
+            }
+        });
+
+        // Initialize
+        loadFiles();
+
+        // Auto-refresh preview every 10 seconds
+        setInterval(() => {
+            const frame = document.getElementById('preview-frame');
+            if (frame.src.includes('/preview')) {
+                frame.src = '/preview?' + Date.now();
+            }
+        }, 10000);
+    </script>
+</body>
+</html>
+    '''
+
+    @app.route('/')
+    def index():
+        return render_template_string(EDITOR_TEMPLATE)
+
+    @app.route('/api/files')
+    def get_files():
+        try:
+            current_file = app.config.get('CURRENT_FILE')
+            if current_file:
+                processor = MHTMLProcessor(current_file)
+                files = processor.get_qra_files()
+                return jsonify({'success': True, 'files': files})
+            else:
+                return jsonify({'success': True, 'files': []})
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/api/save-file', methods=['POST'])
+    def save_file():
+        try:
+            data = request.get_json()
+            filename = data['filename']
+            content = data['content']
+
+            current_file = app.config.get('CURRENT_FILE')
+            if current_file:
+                processor = MHTMLProcessor(current_file)
+                processor.save_file_content(filename, content)
+                return jsonify({'success': True})
+            else:
+                return jsonify({'success': False, 'error': 'Brak aktywnego pliku'}), 400
+
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/api/save-all', methods=['POST'])
+    def save_all():
+        try:
+            current_file = app.config.get('CURRENT_FILE')
+            if current_file:
+                processor = MHTMLProcessor(current_file)
+                processor.pack_from_qra_folder()
+                return jsonify({'success': True})
+            else:
+                return jsonify({'success': False, 'error': 'Brak aktywnego pliku'}), 400
+
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/api/add-file', methods=['POST'])
+    def add_file():
+        try:
+            data = request.get_json()
+            filename = data['filename']
+
+            # Dodaj rozszerzenie jeśli nie ma
+            if '.' not in filename:
+                filename += '.html'
+
+            current_file = app.config.get('CURRENT_FILE')
+            if current_file:
+                processor = MHTMLProcessor(current_file)
+
+                # Zawartość domyślna na podstawie rozszerzenia
+                ext = filename.split('.')[-1].lower()
+                if ext == 'html':
+                    content = '<!DOCTYPE html>\n<html>\n<head>\n    <title>New Page</title>\n</head>\n<body>\n    <h1>New Page</h1>\n</body>\n</html>'
+                elif ext == 'css':
+                    content = '/* New stylesheet */\nbody {\n    font-family: Arial, sans-serif;\n}\n'
+                elif ext == 'js':
+                    content = '// New JavaScript file\nconsole.log("Hello from new file");\n'
+                else:
+                    content = ''
+
+                processor.save_file_content(filename, content)
+                return jsonify({'success': True})
+            else:
+                return jsonify({'success': False, 'error': 'Brak aktywnego pliku'}), 400
+
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    @app.route('/preview')
+    def preview():
+        try:
+            current_file = app.config.get('CURRENT_FILE')
+            if not current_file:
+                return '<html><body><h1>Brak aktywnego pliku</h1><p>Użyj <code>qra edit filename.mhtml</code></p></body></html>'
+
+            processor = MHTMLProcessor(current_file)
+            files = processor.get_qra_files()
+
+            # Znajdź główny plik HTML
+            html_file = None
+            for file in files:
+                if file['name'].endswith('.html') or file['type'] == 'html':
+                    html_file = file
+                    break
+
+            if not html_file:
+                return '<html><body><h1>Brak pliku HTML</h1><p>Dodaj plik .html aby zobaczyć podgląd</p></body></html>'
+
+            return html_file['content']
+
+        except Exception as e:
+            return f'<html><body><h1>Błąd podglądu</h1><p>{str(e)}</p></body></html>'
+
+    # Start auto-save when app starts
+    @app.before_first_request
+    def start_auto_save():
+        current_file = app.config.get('CURRENT_FILE')
+        if current_file:
+            processor = MHTMLProcessor(current_file)
+            auto_save_manager.start(processor)
+
+    return app

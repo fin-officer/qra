@@ -7,13 +7,31 @@ readme = "README.md"
 packages = [{include = "qra"}]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = ">=3.8.1,<4.0"
+
+[tool.poetry.group.dev.dependencies]
 flask = "^2.3.0"
 click = "^8.1.0"
 watchdog = "^3.0.0"
 markdown = "^3.5.0"
 beautifulsoup4 = "^4.12.0"
 pygments = "^2.16.0"
+email-validator = "^2.0.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.0"
+pytest-cov = "^4.1.0"
+pytest-mock = "^3.11.1"
+pytest-timeout = "^2.1.0"
+black = "^23.7.0"
+isort = "^5.12.0"
+flake8 = "^6.0.0"
+mypy = "^1.4.1"
+types-beautifulsoup4 = "^4.12.0.20230605"
+types-python-dateutil = "^2.8.19.12"
+types-requests = "^2.31.0.1"
+types-pyyaml = "^6.0.12.9"
+pre-commit = "^3.3.3"
 
 [tool.poetry.scripts]
 qra = "qra.cli:main"
@@ -21,3 +39,22 @@ qra = "qra.cli:main"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+line_length = 88
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --cov=qra --cov-report=term-missing --cov-report=html"
